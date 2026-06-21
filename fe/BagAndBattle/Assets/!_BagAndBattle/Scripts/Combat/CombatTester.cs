@@ -48,35 +48,7 @@ public class CombatTester : MonoBehaviour
             Debug.Log("[CombatTester] Phím Enter được nhấn! Đang gọi StartCombat...");
             if (CombatManager.Instance != null)
             {
-                Inventory inv = inventory != null ? inventory : Object.FindObjectOfType<Inventory>();
-
-                if (inv != null)
-                {
-                    CombatManager.Instance.StartCombat();
-                }
-                else
-                {
-                    Debug.LogWarning("[CombatTester] Không có Inventory trong Scene! Bắt đầu combat giả lập bằng các Test Item Prefabs...");
-                    System.Collections.Generic.List<ItemData> debugItems = new System.Collections.Generic.List<ItemData>();
-                    if (testItemPrefabs != null)
-                    {
-                        foreach(var prefab in testItemPrefabs)
-                        {
-                            if (prefab != null)
-                            {
-                                // Instantiate để item tự random index trong Start()
-                                Item tempItem = Instantiate(prefab);
-                                tempItem.Start();
-                                if (tempItem.Data != null)
-                                {
-                                    debugItems.Add(tempItem.Data);
-                                }
-                                Destroy(tempItem.gameObject);
-                            }
-                        }
-                    }
-                    CombatManager.Instance.StartCombatWithDebugItems(debugItems);
-                }
+                CombatManager.Instance.StartCombat();
             }
             else
             {
