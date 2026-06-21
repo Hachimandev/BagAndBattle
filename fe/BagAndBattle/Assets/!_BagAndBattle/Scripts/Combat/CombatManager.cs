@@ -71,6 +71,15 @@ public class CombatManager : MonoBehaviour
                 }
             }
         }
+        
+        if (activeItems.Count == 0)
+        {
+            Debug.LogWarning("[CombatManager] Không có item nào trên bàn cờ hoặc các item không có component 'Item'! Trận đấu sẽ không có tác dụng gì.");
+        }
+        else
+        {
+            Debug.Log($"[CombatManager] Đã nhận {activeItems.Count} items trên bàn cờ. Bắt đầu vòng lặp combat!");
+        }
     }
 
     private void Update()
@@ -95,14 +104,14 @@ public class CombatManager : MonoBehaviour
 
         foreach (var tracker in activeItems)
         {
-            // Skip items with no combat trigger speed (or 0 to avoid div/0 or instant loop)
-            if (tracker.itemData.triggerSpeed <= 0f) continue;
+            // Default trigger speed to 1f if it's not set properly
+            float speed = tracker.itemData.triggerSpeed > 0f ? tracker.itemData.triggerSpeed : 1f;
 
             tracker.currentTimer += deltaTime;
 
-            if (tracker.currentTimer >= tracker.itemData.triggerSpeed)
+            if (tracker.currentTimer >= speed)
             {
-                tracker.currentTimer -= tracker.itemData.triggerSpeed;
+                tracker.currentTimer -= speed;
                 ProcessItemEffects(tracker.itemData, tracker.storedObject.storable.gameObject.name);
             }
         }
@@ -110,11 +119,20 @@ public class CombatManager : MonoBehaviour
 
     private void ProcessItemEffects(ItemData data, string itemName)
     {
-        Debug.Log($"[CombatManager] Item '{itemName}' triggers! Damage: {data.damage}, Heal: {data.heal}, Shield: {data.shield}");
+        int finalDamage = data.damage;
 
-        if (monster != null && data.damage > 0)
+        // Nếu người dùng quên chưa chỉnh chỉ số trong Scriptable Object, ta sẽ gán tạm 5 sát thương để dễ test
+        if (finalDamage == 0 && data.heal == 0 && data.shield == 0)
         {
-            monster.TakeDamage(data.damage);
+            Debug.LogWarning($"[CombatManager] Vật phẩm '{itemName}' đang có chỉ số là 0! Tạm gán 5 Damage để test.");
+            finalDamage = 5;
+        }
+
+        Debug.Log($"[CombatManager] >>> Vật phẩm '{itemName}' vừa kích hoạt! (Dame: {finalDamage}, Heal: {data.heal}, Shield: {data.shield})");
+
+        if (monster != null && finalDamage > 0)
+        {
+            monster.TakeDamage(finalDamage);
         }
 
         if (player != null)
