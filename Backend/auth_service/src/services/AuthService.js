@@ -1,5 +1,4 @@
-const { adminAuth, clientAuth } = require('../config/firebase');
-const { signInWithEmailAndPassword, signOut } = require('firebase/auth');
+const { adminAuth } = require('../config/firebase');
 const eventPublisher = require('../events/EventPublisher');
 const jwt = require('jsonwebtoken');
 
@@ -32,22 +31,21 @@ class AuthService {
   }
 
   /**
-   * Logs in a user using email and password via the Firebase Client SDK.
-   * Note: In a typical architecture, this is done directly on the frontend.
-   * @param {string} email 
-   * @param {string} password 
+   * Logs in a user via a client-provided Firebase ID token.
+   * The client (e.g. Unity) calls signInWithEmailAndPassword(), gets the ID token, 
+   * and sends it to this backend method to initialize the session.
+   * @param {string} idToken 
    * @returns {Object} User info and tokens
    */
-  async Login(email, password) {
-    if (!clientAuth) throw new Error("Firebase Client SDK not configured. Set FIREBASE_API_KEY etc.");
+  async Login(idToken) {
+    if (!adminAuth) throw new Error("Firebase Admin not configured.");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(clientAuth, email, password);
-      const idToken = await userCredential.user.getIdToken();
+      const decodedToken = await adminAuth.verifyIdToken(idToken);
       
       const payload = {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email
+        uid: decodedToken.uid,
+        email: decodedToken.email
       };
 
       // Emit event
@@ -58,7 +56,7 @@ class AuthService {
         token: idToken,
       };
     } catch (error) {
-      this.handleAuthError(error);
+      throw new Error("Invalid or expired ID Token.");
     }
   }
 
@@ -104,9 +102,6 @@ class AuthService {
     if (!adminAuth) throw new Error("Firebase Admin not configured.");
     
     try {
-      if (clientAuth) {
-         await signOut(clientAuth);
-      }
       if (uid) {
         await adminAuth.revokeRefreshTokens(uid);
       }
