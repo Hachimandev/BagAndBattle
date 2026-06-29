@@ -1,4 +1,4 @@
-﻿using LgTyLib.Core;
+using LgTyLib.Core;
 using System;
 using UnityEngine;
 
@@ -21,6 +21,8 @@ public class Inventory : BaseSingleton<Inventory>
 
     public event Action<StoredObject> OnItemRemoved;
 
+    public bool IsLocked { get; set; } = false;
+
     [field: SerializeField]
     public InventoryGrid grid { get; private set; }
 
@@ -38,8 +40,6 @@ public class Inventory : BaseSingleton<Inventory>
         inventoryGridVisual.ShowGrid(grid);
 
         OnCellsChanged += () => inventoryGridVisual.RefreshGrid(grid);
-        OnCellsChanged += () => { Debug.Log("Hi"); };
-
     }
 
     private void LockRegionOutside(int playableW, int playableH)
@@ -52,11 +52,20 @@ public class Inventory : BaseSingleton<Inventory>
 
     public bool TryPlaceOrMove(Storable storable, Vector2Int origin, int rotation, StoredObject existing, out StoredObject result)
     {
+        if (IsLocked)
+        {
+            Debug.Log("[Inventory] Locked! Cannot place or move items during combat.");
+            result = null;
+            return false;
+        }
+
         var validation = PlacementValidator.CanPlace(grid, storable, origin, rotation, ignore: existing);
 
         if (!validation.Success)
         {
-            Debug.Log($"[Inventory] TryPlaceOrMove failed: {validation}");
+            //Debug.Log($"[Inventory] TryPlaceOrMove failed: {validation}");
+            grid.ReconcileCells();
+            OnCellsChanged?.Invoke();
             result = null;
             return false;
         }
@@ -77,7 +86,7 @@ public class Inventory : BaseSingleton<Inventory>
             OnItemPlaced?.Invoke(obj);
 
         OnCellsChanged?.Invoke();
-        Debug.Log("CallingOnCellChanged");
+        //Debug.Log("CallingOnCellChanged");
         return true;
     }
 
